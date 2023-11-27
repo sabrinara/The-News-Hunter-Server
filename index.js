@@ -3,14 +3,14 @@ const app = express();
 const port = process.env.PORT || 5000;
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
 app.use(cors());
 app.use(express.json());
 
 
-const uri = `mongodb+srv://process.env.DB_USER:process.env.DB_PASS@cluster0.2ewf2fa.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2ewf2fa.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -26,6 +26,7 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         const userCollection = client.db('The-News-Hunter').collection('users');
         const newsCollection = client.db('The-News-Hunter').collection('news');
+        const publisherCollection = client.db('The-News-Hunter').collection('publisher');
 
         // await client.connect();
         //get all news
@@ -68,6 +69,63 @@ async function run() {
             const result = await newsCollection.findOneAndUpdate(query, update, options);
             res.send(result.value);
         })
+
+        //update view count
+        // app.put('/news/view/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: new ObjectId(id) };
+        //     const update = { $inc: { view: 1 } };
+        //     const options = { returnOriginal: false };
+        //     const result = await newsCollection.findOneAndUpdate(query, update, options);
+        //     res.send(result.value);
+        // })
+
+        //get all publisher
+        app.get('/publisher', async (req, res) => {
+            const query = {};
+            const cursor = publisherCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        //get single publisher
+        app.get('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await publisherCollection.findOne(query);
+            res.send(result);
+        })
+
+        //post publisher
+        app.post('/publisher', async (req, res) => {
+            const publisher = req.body;
+            const result = await publisherCollection.insertOne(publisher);
+            res.send(result);
+        })
+
+        //delete a publisher
+        app.delete('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await publisherCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        //update a publisher
+        app.put('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = { $set: req.body };
+            const options = { returnOriginal: false };
+            const result = await publisherCollection.findOneAndUpdate(query, update, options);
+            res.send(result.value);
+        })
+
+        
+
+
+
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
