@@ -29,10 +29,21 @@ async function run() {
         const publisherCollection = client.db('The-News-Hunter').collection('publisher');
 
         // await client.connect();
+        //post user
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            const query = { email: user.email }
+            const existingUser = await userCollection.findOne(query);
+            if (existingUser) {
+                return res.send({ message: 'user already exists', insertedId: null })
+            } 
+            const result = await userCollection.insertOne(user);
+            res.send(result);
+        })
+
         //get all news
         app.get('/news', async (req, res) => {
-            const query = {};
-            const cursor = newsCollection.find(query);
+            const cursor = newsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
@@ -63,22 +74,29 @@ async function run() {
         //update a news
         app.put('/news/:id', async (req, res) => {
             const id = req.params.id;
+            const updatednews = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const update = {
+                $set: updatednews,
+            }
+            const result = await newsCollection.updateOne(filter, update, options);
+            res.send(result);
+        })
+
+
+
+        //update view count
+        app.put('/news/view/:id', async (req, res) => {
+            const id = req.params.id;
             const query = { _id: new ObjectId(id) };
-            const update = { $set: req.body };
+            const update = { $inc: { views: 1 } };
             const options = { returnOriginal: false };
             const result = await newsCollection.findOneAndUpdate(query, update, options);
             res.send(result.value);
-        })
+        });
 
-        //update view count
-        // app.put('/news/view/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const query = { _id: new ObjectId(id) };
-        //     const update = { $inc: { view: 1 } };
-        //     const options = { returnOriginal: false };
-        //     const result = await newsCollection.findOneAndUpdate(query, update, options);
-        //     res.send(result.value);
-        // })
+
 
         //get all publisher
         app.get('/publisher', async (req, res) => {
@@ -121,7 +139,7 @@ async function run() {
             res.send(result.value);
         })
 
-        
+
 
 
 
