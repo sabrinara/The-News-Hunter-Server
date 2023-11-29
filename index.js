@@ -29,17 +29,84 @@ async function run() {
         const publisherCollection = client.db('The-News-Hunter').collection('publisher');
 
         // await client.connect();
-        //post user
+        // get all users
+        app.get('/users', async (req, res) => {
+            try {
+                const users = await userCollection.find().toArray();
+                res.json(users);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
+            }
+        });
+
+        // get user by email
+        app.get("/users/:email", async (req, res) => {
+            try {
+                const email = req.params.email;
+                const query = { email: email };
+                const user = await userCollection.findOne(query);
+
+                if (!user) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
+                res.json(user);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
+            }
+        });
+
+        // post user
         app.post('/users', async (req, res) => {
-            const user = req.body;
-            const query = { email: user.email }
-            const existingUser = await userCollection.findOne(query);
-            if (existingUser) {
-                return res.send({ message: 'user already exists', insertedId: null })
-            } 
-            const result = await userCollection.insertOne(user);
-            res.send(result);
-        })
+            try {
+                const user = req.body;
+                // Validate user data here (e.g., required fields)
+
+                const query = { email: user.email };
+                const existingUser = await userCollection.findOne(query);
+
+                if (existingUser) {
+                    return res.status(409).json({ message: 'User already exists', insertedId: null });
+                }
+
+                const result = await userCollection.insertOne(user);
+                res.json(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
+            }
+        });
+        
+
+        // role updates for users
+        app.patch("/news/:id", async (req, res) => {
+            try {
+              const { id } = req.params;
+              const { status } = req.body;
+      
+              if (!ObjectId.isValid(id)) {
+                return res.status(400).json({ error: "Invalid products ID" });
+              }
+      
+              const updatedProducts = await newsCollection.findOneAndUpdate(
+                { _id: new ObjectId(id) },
+                { $set: { status } },
+                { returnOriginal: false }
+              );
+      
+              if (!updatedProducts.value) {
+                return res.status(404).json({ error: "products not found" });
+              }
+      
+              res.json(updatedProducts.value);
+            } catch (error) {
+              console.error(error);
+              res.status(500).json({ error: "Internal server error" });
+            }
+          });
+
 
         //get all news
         app.get('/news', async (req, res) => {
@@ -48,51 +115,89 @@ async function run() {
             res.send(result);
         })
 
-        //get single news
+        // Get single news
         app.get('/news/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await newsCollection.findOne(query);
             res.send(result);
-        })
+        });
 
-        //post news
+        // Post news
         app.post('/news', async (req, res) => {
             const news = req.body;
             const result = await newsCollection.insertOne(news);
             res.send(result);
-        })
+        });
 
-        //delete a news
+        // Delete a news
         app.delete('/news/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await newsCollection.deleteOne(query);
             res.send(result);
-        })
+        });
 
-        //update a news
-        app.put('/news/:id', async (req, res) => {
-            const id = req.params.id;
-            const updatednews = req.body;
-            const filter = { _id: new ObjectId(id) };
-            const options = { upsert: true };
-            const update = {
-                $set: updatednews,
+        // Update a news
+        app.put("/news/:id", async (req, res) => {
+            const { id } = req.params;
+        
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).json({ error: "Invalid news ID" });
             }
-            const result = await newsCollection.updateOne(filter, update, options);
-            res.send(result);
-        })
+        
+            const updatedNews = req.body;
+        
+            const result = await newsCollection.findOneAndUpdate(
+                { _id: new ObjectId(id) },
+                { $set: updatedNews },
+                { returnOriginal: false }
+            );
+        
+            if (!result.value) {
+                return res.status(404).json({ error: "News article not found" });
+            }
+        
+            res.json(result.value);
+        });
+        
 
-
-
-        //update view count
+        // Update view count
         app.put('/news/view/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const update = { $inc: { views: 1 } };
             const options = { returnOriginal: false };
             const result = await newsCollection.findOneAndUpdate(query, update, options);
+            res.send(result.value);
+        });
+
+        // Approve or Decline an article
+        app.patch('/news/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const { status, declineReason } = req.body;
+
+            const query = { _id: new ObjectId(id) };
+            const update = status === 'approved'
+                ? { $set: { status: 'approved' } }
+                : { $set: { status: 'declined', declineReason } };
+
+            const options = { returnOriginal: false };
+            const result = await newsCollection.findOneAndUpdate(query, update, options);
+
+            res.send(result.value);
+        });
+
+        // Make an article premium
+        app.patch('/news/premium/:id', async (req, res) => {
+            const id = req.params.id;
+
+            const query = { _id: new ObjectId(id) };
+            const update = { $set: { isPremium: true } };
+
+            const options = { returnOriginal: false };
+            const result = await newsCollection.findOneAndUpdate(query, update, options);
+
             res.send(result.value);
         });
 
@@ -138,12 +243,6 @@ async function run() {
             const result = await publisherCollection.findOneAndUpdate(query, update, options);
             res.send(result.value);
         })
-
-
-
-
-
-
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
