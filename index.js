@@ -116,30 +116,29 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         })
-     
-
-
-        // role updates for users
-        app.patch("/news/:id", async (req, res) => {
+        //set user role by id
+        app.patch("/users/:id", async (req, res) => {
             try {
                 const { id } = req.params;
-                const { status } = req.body;
-
-                if (!ObjectId.isValid(id)) {
-                    return res.status(400).json({ error: "Invalid products ID" });
+                const { role } = req.body;
+        
+                // Validate the role to prevent unauthorized role changes (optional)
+                const validRoles = ["", "admin"];
+                if (!validRoles.includes(role)) {
+                    return res.status(400).json({ error: "Invalid role" });
                 }
-
-                const updatedProducts = await newsCollection.findOneAndUpdate(
+        
+                const updatedUser = await userCollection.findOneAndUpdate(
                     { _id: new ObjectId(id) },
-                    { $set: { status } },
-                    { returnOriginal: false }
+                    { $set: { role } },
+                    { returnDocument: 'after' } // Return the updated document
                 );
-
-                if (!updatedProducts.value) {
-                    return res.status(404).json({ error: "products not found" });
+        
+                if (!updatedUser.value) {
+                    return res.status(404).json({ error: "User not found" });
                 }
-
-                res.json(updatedProducts.value);
+        
+                res.json(updatedUser.value);
             } catch (error) {
                 console.error(error);
                 res.status(500).json({ error: "Internal server error" });
@@ -147,141 +146,7 @@ async function run() {
         });
 
 
-        //get all news
-        app.get('/news', async (req, res) => {
-            const cursor = newsCollection.find();
-            const result = await cursor.toArray();
-            res.send(result);
-        })
-
-        // Get single news
-        app.get('/news/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await newsCollection.findOne(query);
-            res.send(result);
-        });
-
-        // Post news
-        app.post('/news', async (req, res) => {
-            const news = req.body;
-            const result = await newsCollection.insertOne(news);
-            res.send(result);
-        });
-
-        // Delete a news
-        app.delete('/news/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await newsCollection.deleteOne(query);
-            res.send(result);
-        });
-
-        // Update a news
-        app.put("/news/:id", async (req, res) => {
-            const { id } = req.params;
-
-            if (!ObjectId.isValid(id)) {
-                return res.status(400).json({ error: "Invalid news ID" });
-            }
-
-            const updatedNews = req.body;
-
-            const result = await newsCollection.findOneAndUpdate(
-                { _id: new ObjectId(id) },
-                { $set: updatedNews },
-                { returnOriginal: false }
-            );
-
-            if (!result.value) {
-                return res.status(404).json({ error: "News article not found" });
-            }
-
-            res.json(result.value);
-        });
-
-
-        // Update view count
-        app.put('/news/view/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const update = { $inc: { views: 1 } };
-            const options = { returnOriginal: false };
-            const result = await newsCollection.findOneAndUpdate(query, update, options);
-            res.send(result.value);
-        });
-
-        // Approve or Decline an article
-        app.patch('/news/approve/:id', async (req, res) => {
-            const id = req.params.id;
-            const { status, declineReason } = req.body;
-
-            const query = { _id: new ObjectId(id) };
-            const update = status === 'approved'
-                ? { $set: { status: 'approved' } }
-                : { $set: { status: 'declined', declineReason } };
-
-            const options = { returnOriginal: false };
-            const result = await newsCollection.findOneAndUpdate(query, update, options);
-
-            res.send(result.value);
-        });
-
-        // Make an article premium
-        app.patch('/news/premium/:id', async (req, res) => {
-            const id = req.params.id;
-
-            const query = { _id: new ObjectId(id) };
-            const update = { $set: { isPremium: true } };
-
-            const options = { returnOriginal: false };
-            const result = await newsCollection.findOneAndUpdate(query, update, options);
-
-            res.send(result.value);
-        });
-
-
-
-        //get all publisher
-        app.get('/publisher', async (req, res) => {
-            const query = {};
-            const cursor = publisherCollection.find(query);
-            const result = await cursor.toArray();
-            res.send(result);
-        })
-
-        //get single publisher
-        app.get('/publisher/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await publisherCollection.findOne(query);
-            res.send(result);
-        })
-
-        //post publisher
-        app.post('/publisher', async (req, res) => {
-            const publisher = req.body;
-            const result = await publisherCollection.insertOne(publisher);
-            res.send(result);
-        })
-
-        //delete a publisher
-        app.delete('/publisher/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const result = await publisherCollection.deleteOne(query);
-            res.send(result);
-        })
-
-        //update a publisher
-        app.put('/publisher/:id', async (req, res) => {
-            const id = req.params.id;
-            const query = { _id: new ObjectId(id) };
-            const update = { $set: req.body };
-            const options = { returnOriginal: false };
-            const result = await publisherCollection.findOneAndUpdate(query, update, options);
-            res.send(result.value);
-        })
+        
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
