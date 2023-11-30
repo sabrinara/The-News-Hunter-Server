@@ -146,7 +146,100 @@ async function run() {
         });
 
 
-        
+        // role updates for users
+        app.patch("/news/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { status } = req.body;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).json({ error: "Invalid products ID" });
+                }
+
+                const updatedProducts = await newsCollection.findOneAndUpdate(
+                    { _id: new ObjectId(id) },
+                    { $set: { status } },
+                    { returnOriginal: false }
+                );
+
+                if (!updatedProducts.value) {
+                    return res.status(404).json({ error: "products not found" });
+                }
+
+                res.json(updatedProducts.value);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
+            }
+        });
+
+
+        //get all news
+        app.get('/news', async (req, res) => {
+            const cursor = newsCollection.find();
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        // Get single news
+        app.get('/news/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await newsCollection.findOne(query);
+            res.send(result);
+        });
+
+        // Post news
+        app.post('/news', async (req, res) => {
+            const news = req.body;
+            const result = await newsCollection.insertOne(news);
+            res.send(result);
+        });
+
+        // Delete a news
+        app.delete('/news/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await newsCollection.deleteOne(query);
+            res.send(result);
+        });
+
+        // Update a news
+        app.put("/news/:id", async (req, res) => {
+            const { id } = req.params;
+
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).json({ error: "Invalid news ID" });
+            }
+
+            const updatedNews = req.body;
+
+            const result = await newsCollection.findOneAndUpdate(
+                { _id: new ObjectId(id) },
+                { $set: updatedNews },
+                { returnOriginal: false }
+            );
+
+            if (!result.value) {
+                return res.status(404).json({ error: "News article not found" });
+            }
+
+            res.json(result.value);
+        });
+
+
+        // Update view count
+        app.put('/news/view/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = { $inc: { views: 1 } };
+            const options = { returnOriginal: false };
+            const result = await newsCollection.findOneAndUpdate(query, update, options);
+            res.send(result.value);
+        });
+
+        // Approve or Decline an article
+      
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
