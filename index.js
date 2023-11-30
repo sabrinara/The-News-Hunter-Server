@@ -269,7 +269,46 @@ async function run() {
 
 
 
-      
+        //get all publisher
+        app.get('/publisher', async (req, res) => {
+            const query = {};
+            const cursor = publisherCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        //get single publisher
+        app.get('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await publisherCollection.findOne(query);
+            res.send(result);
+        })
+
+        //post publisher
+        app.post('/publisher', async (req, res) => {
+            const publisher = req.body;
+            const result = await publisherCollection.insertOne(publisher);
+            res.send(result);
+        })
+
+        //delete a publisher
+        app.delete('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await publisherCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        //update a publisher
+        app.put('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = { $set: req.body };
+            const options = { returnOriginal: false };
+            const result = await publisherCollection.findOneAndUpdate(query, update, options);
+            res.send(result.value);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
