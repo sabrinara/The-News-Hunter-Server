@@ -6,7 +6,10 @@ require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'https://scintillating-melomakarona-8d8643.netlify.app', 'https://unique-malasada-354e4c.netlify.app', 'https://the-news-hunter-e9341.web.app'],
+    credentials: true,
+}));
 app.use(express.json());
 
 
@@ -39,6 +42,8 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
+        
+
 
         // get user by email
         app.get("/users/:email", async (req, res) => {
@@ -57,7 +62,14 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
-
+        //get user by id
+        app.get('/users/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await userCollection.findOne(query);
+            res.send(result);
+        });
+        
         // post user
         app.post('/users', async (req, res) => {
             try {
@@ -78,34 +90,61 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
-        
+        // update user profile by name and image 
+        app.patch("/users/:email", async (req, res) => {
+            try {
+                const { email } = req.params;
+                const { name, image } = req.body;
+
+                if (!ObjectId.isValid(email)) {
+                    return res.status(400).json({ error: "Invalid user ID" });
+                }
+
+                const updatedUser = await userCollection.findOneAndUpdate(
+                    { _id: new ObjectId(email) },
+                    { $set: { name, image } },
+                    { returnOriginal: false }
+                );
+
+                if (!updatedUser.value) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+
+                res.json(updatedUser.value);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
+            }
+        })
+     
+
 
         // role updates for users
         app.patch("/news/:id", async (req, res) => {
             try {
-              const { id } = req.params;
-              const { status } = req.body;
-      
-              if (!ObjectId.isValid(id)) {
-                return res.status(400).json({ error: "Invalid products ID" });
-              }
-      
-              const updatedProducts = await newsCollection.findOneAndUpdate(
-                { _id: new ObjectId(id) },
-                { $set: { status } },
-                { returnOriginal: false }
-              );
-      
-              if (!updatedProducts.value) {
-                return res.status(404).json({ error: "products not found" });
-              }
-      
-              res.json(updatedProducts.value);
+                const { id } = req.params;
+                const { status } = req.body;
+
+                if (!ObjectId.isValid(id)) {
+                    return res.status(400).json({ error: "Invalid products ID" });
+                }
+
+                const updatedProducts = await newsCollection.findOneAndUpdate(
+                    { _id: new ObjectId(id) },
+                    { $set: { status } },
+                    { returnOriginal: false }
+                );
+
+                if (!updatedProducts.value) {
+                    return res.status(404).json({ error: "products not found" });
+                }
+
+                res.json(updatedProducts.value);
             } catch (error) {
-              console.error(error);
-              res.status(500).json({ error: "Internal server error" });
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
             }
-          });
+        });
 
 
         //get all news
@@ -141,26 +180,26 @@ async function run() {
         // Update a news
         app.put("/news/:id", async (req, res) => {
             const { id } = req.params;
-        
+
             if (!ObjectId.isValid(id)) {
                 return res.status(400).json({ error: "Invalid news ID" });
             }
-        
+
             const updatedNews = req.body;
-        
+
             const result = await newsCollection.findOneAndUpdate(
                 { _id: new ObjectId(id) },
                 { $set: updatedNews },
                 { returnOriginal: false }
             );
-        
+
             if (!result.value) {
                 return res.status(404).json({ error: "News article not found" });
             }
-        
+
             res.json(result.value);
         });
-        
+
 
         // Update view count
         app.put('/news/view/:id', async (req, res) => {
