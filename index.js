@@ -239,6 +239,36 @@ async function run() {
         });
 
         // Approve or Decline an article
+        app.patch('/news/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const { status, declineReason } = req.body;
+
+            const query = { _id: new ObjectId(id) };
+            const update = status === 'approved'
+                ? { $set: { status: 'approved' } }
+                : { $set: { status: 'declined', declineReason } };
+
+            const options = { returnOriginal: false };
+            const result = await newsCollection.findOneAndUpdate(query, update, options);
+
+            res.send(result.value);
+        });
+
+        // Make an article premium
+        app.patch('/news/premium/:id', async (req, res) => {
+            const id = req.params.id;
+
+            const query = { _id: new ObjectId(id) };
+            const update = { $set: { isPremium: true } };
+
+            const options = { returnOriginal: false };
+            const result = await newsCollection.findOneAndUpdate(query, update, options);
+
+            res.send(result.value);
+        });
+
+
+
       
 
         // Send a ping to confirm a successful connection
