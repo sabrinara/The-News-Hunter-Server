@@ -7,7 +7,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://scintillating-melomakarona-8d8643.netlify.app', 'https://unique-malasada-354e4c.netlify.app', 'https://the-news-hunter-e9341.web.app'],
+    origin: ['http://localhost:5173', 'https://the-news-hunter-e9341.web.app', 'https://the-news-hunter.netlify.app', 'https://the-news-hunter-e9341.web.app'],
     credentials: true,
 }));
 app.use(express.json());
@@ -15,7 +15,7 @@ app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2ewf2fa.mongodb.net/?retryWrites=true&w=majority`;
 
-
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
@@ -32,7 +32,7 @@ async function run() {
         const publisherCollection = client.db('The-News-Hunter').collection('publisher');
 
         // await client.connect();
-        
+        // get all users
         app.get('/users', async (req, res) => {
             try {
                 const users = await userCollection.find().toArray();
@@ -45,7 +45,7 @@ async function run() {
         
 
 
-      
+        // get user by email
         app.get("/users/:email", async (req, res) => {
             try {
                 const email = req.params.email;
@@ -62,7 +62,7 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
-    
+        //get user by id
         app.get('/users/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -70,7 +70,7 @@ async function run() {
             res.send(result);
         });
         
-        
+        // post user
         app.post('/users', async (req, res) => {
             try {
                 const user = req.body;
@@ -90,7 +90,7 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
-     
+        // update user profile by name and image 
         app.patch("/users/:email", async (req, res) => {
             try {
                 const { email } = req.params;
@@ -116,18 +116,13 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         })
-       
+        //set user role by id
         app.patch("/users/:id", async (req, res) => {
             try {
                 const { id } = req.params;
                 const { role } = req.body;
-
-                if (!ObjectId.isValid(id)) {
-                    return res.status(400).json({ error: "Invalid user ID" });
-                }
-
         
-               
+                // Validate the role to prevent unauthorized role changes (optional)
                 const validRoles = ["", "admin"];
                 if (!validRoles.includes(role)) {
                     return res.status(400).json({ error: "Invalid role" });
@@ -151,7 +146,7 @@ async function run() {
         });
 
 
-       
+        // role updates for users
         app.patch("/news/:id", async (req, res) => {
             try {
                 const { id } = req.params;
@@ -179,14 +174,14 @@ async function run() {
         });
 
 
-        
+        //get all news
         app.get('/news', async (req, res) => {
             const cursor = newsCollection.find();
             const result = await cursor.toArray();
             res.send(result);
         })
 
-       
+        // Get single news
         app.get('/news/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -194,14 +189,14 @@ async function run() {
             res.send(result);
         });
 
-      
+        // Post news
         app.post('/news', async (req, res) => {
             const news = req.body;
             const result = await newsCollection.insertOne(news);
             res.send(result);
         });
 
-        
+        // Delete a news
         app.delete('/news/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -209,7 +204,7 @@ async function run() {
             res.send(result);
         });
 
-        
+        // Update a news
         app.put("/news/:id", async (req, res) => {
             const { id } = req.params;
 
@@ -233,7 +228,7 @@ async function run() {
         });
 
 
-      
+        // Update view count
         app.put('/news/view/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -243,7 +238,7 @@ async function run() {
             res.send(result.value);
         });
 
-        
+        // Approve or Decline an article
         app.patch('/news/approve/:id', async (req, res) => {
             const id = req.params.id;
             const { status, declineReason } = req.body;
@@ -259,7 +254,7 @@ async function run() {
             res.send(result.value);
         });
 
-     
+        // Make an article premium
         app.patch('/news/premium/:id', async (req, res) => {
             const id = req.params.id;
 
@@ -274,7 +269,8 @@ async function run() {
 
 
 
-      
+
+        //get all publisher
         app.get('/publisher', async (req, res) => {
             const query = {};
             const cursor = publisherCollection.find(query);
@@ -282,7 +278,7 @@ async function run() {
             res.send(result);
         })
 
-        
+        //get single publisher
         app.get('/publisher/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -290,14 +286,14 @@ async function run() {
             res.send(result);
         })
 
-     
+        //post publisher
         app.post('/publisher', async (req, res) => {
             const publisher = req.body;
             const result = await publisherCollection.insertOne(publisher);
             res.send(result);
         })
 
-      
+        //delete a publisher
         app.delete('/publisher/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -305,7 +301,7 @@ async function run() {
             res.send(result);
         })
 
-      
+        //update a publisher
         app.put('/publisher/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
