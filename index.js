@@ -7,7 +7,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 // middleware
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://the-news-hunter-e9341.web.app', 'https://the-news-hunter.netlify.app', 'https://the-news-hunter-e9341.web.app'],
+    origin: ['http://localhost:5173', 'https://the-news-hunter.netlify.app'],
     credentials: true,
 }));
 app.use(express.json());
@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        const userCollection = client.db('The-News-Hunter').collection('users');
+        const usersCollection = client.db('The-News-Hunter').collection('users');
         const newsCollection = client.db('The-News-Hunter').collection('news');
         const publisherCollection = client.db('The-News-Hunter').collection('publisher');
 
@@ -35,7 +35,7 @@ async function run() {
         // get all users
         app.get('/users', async (req, res) => {
             try {
-                const users = await userCollection.find().toArray();
+                const users = await usersCollection.find().toArray();
                 res.json(users);
             } catch (error) {
                 console.error(error);
@@ -50,7 +50,7 @@ async function run() {
             try {
                 const email = req.params.email;
                 const query = { email: email };
-                const user = await userCollection.findOne(query);
+                const user = await usersCollection.findOne(query);
 
                 if (!user) {
                     return res.status(404).json({ error: "User not found" });
@@ -62,13 +62,45 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         });
+
+
+        // role update
+        app.patch("/users/:id", async (req, res) => {
+            try {
+                const { id } = req.params;
+                const { role } = req.body;
+        
+                // Validate the role to prevent unauthorized role changes (optional)
+                const validRoles = ["user", "editor", "admin"];
+                if (!validRoles.includes(role)) {
+                    return res.status(400).json({ error: "Invalid role" });
+                }
+        
+                const updatedUser = await usersCollection.findOneAndUpdate(
+                    { _id: new ObjectId(id) },
+                    { $set: { role } },
+                    { returnOriginal: false } // Return the updated document
+                );
+        
+                if (!updatedUser.value) {
+                    return res.status(404).json({ error: "User not found" });
+                }
+        
+                res.json(updatedUser.value);
+            } catch (error) {
+                console.error(error);
+                res.status(500).json({ error: "Internal server error" });
+            }
+        });
         //get user by id
         app.get('/users/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
-            const result = await userCollection.findOne(query);
+            const result = await usersCollection.findOne(query);
             res.send(result);
         });
+
+        
         
         // post user
         app.post('/users', async (req, res) => {
@@ -77,13 +109,13 @@ async function run() {
                 // Validate user data here (e.g., required fields)
 
                 const query = { email: user.email };
-                const existingUser = await userCollection.findOne(query);
+                const existingUser = await usersCollection.findOne(query);
 
                 if (existingUser) {
                     return res.status(409).json({ message: 'User already exists', insertedId: null });
                 }
 
-                const result = await userCollection.insertOne(user);
+                const result = await usersCollection.insertOne(user);
                 res.json(result);
             } catch (error) {
                 console.error(error);
@@ -100,7 +132,7 @@ async function run() {
                     return res.status(400).json({ error: "Invalid user ID" });
                 }
 
-                const updatedUser = await userCollection.findOneAndUpdate(
+                const updatedUser = await usersCollection.findOneAndUpdate(
                     { _id: new ObjectId(email) },
                     { $set: { name, image } },
                     { returnOriginal: false }
@@ -116,37 +148,17 @@ async function run() {
                 res.status(500).json({ error: "Internal server error" });
             }
         })
-        //set user role by id
-        app.patch("/users/:id", async (req, res) => {
-            try {
-                const { id } = req.params;
-                const { role } = req.body;
-        
-                // Validate the role to prevent unauthorized role changes (optional)
-                const validRoles = ["", "admin"];
-                if (!validRoles.includes(role)) {
-                    return res.status(400).json({ error: "Invalid role" });
-                }
-        
-                const updatedUser = await userCollection.findOneAndUpdate(
-                    { _id: new ObjectId(id) },
-                    { $set: { role } },
-                    { returnDocument: 'after' } // Return the updated document
-                );
-        
-                if (!updatedUser.value) {
-                    return res.status(404).json({ error: "User not found" });
-                }
-        
-                res.json(updatedUser.value);
-            } catch (error) {
-                console.error(error);
-                res.status(500).json({ error: "Internal server error" });
-            }
-        });
+       //delete user
+       app.delete('/users/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await usersCollection.deleteOne(query);
+        res.send(result);
+    });
+      
 
 
-        // role updates for users
+        // news updates status
         app.patch("/news/:id", async (req, res) => {
             try {
                 const { id } = req.params;
@@ -191,10 +203,12 @@ async function run() {
 
         // Post news
         app.post('/news', async (req, res) => {
-            const news = req.body;
-            const result = await newsCollection.insertOne(news);
+            const newss = req.body;
+            console.log("hit the post api", newss);
+            const result = await newsCollection.insertOne(newss);
             res.send(result);
-        });
+          });
+        
 
         // Delete a news
         app.delete('/news/:id', async (req, res) => {
