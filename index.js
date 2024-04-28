@@ -324,6 +324,16 @@ async function run() {
             const result = await publisherCollection.findOneAndUpdate(query, update, options);
             res.send(result.value);
         })
+        //publisher approve
+        app.patch('/publisher/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = { $set: { status: 'approved', role:'editor'  } };
+            const options = { returnOriginal: false };
+            const result = await publisherCollection.findOneAndUpdate(query, update, options);
+            res.send(result.value);
+        })
+     
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
